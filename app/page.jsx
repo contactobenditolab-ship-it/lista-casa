@@ -17,14 +17,14 @@ const USER_BG    = { Silvia: '#2D1347', Sergio: '#0F2847' };
 
 export default function Home() {
   const [user, setUser]           = useState(null);
-  const [items, setItems]         = useState([]);
-  const [filter, setFilter]       = useState('todos');
+  const [items, setItems] = useState(() => { try { const c = typeof window !== 'undefined' && localStorage.getItem('listaCasa_cache'); return c ? JSON.parse(c) : []; } catch { return []; } });
+  const [filter, setFilter]       = useState(() => (typeof window !== 'undefined' && localStorage.getItem('listaCasa_filter')) || 'todos');
   const [selCat, setSelCat]       = useState('compras');
   const [assignTo, setAssignTo]   = useState('');
   const [inputVal, setInputVal]   = useState('');
   const [showDone, setShowDone]   = useState(false);
   const [syncMsg, setSyncMsg]     = useState('');
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading] = useState(() => { try { return !(typeof window !== 'undefined' && localStorage.getItem('listaCasa_cache')); } catch { return true; } });
   const [showModal, setShowModal] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [nudging, setNudging]     = useState(null);
@@ -83,7 +83,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/items');
       const data = await res.json();
-      if (data.items) setItems(data.items);
+      if (data.items) { setItems(data.items); try { localStorage.setItem('listaCasa_cache', JSON.stringify(data.items)); } catch {} }
       if (!silent) setLoading(false);
     } catch { if (!silent) setLoading(false); }
   }
@@ -438,7 +438,7 @@ export default function Home() {
         <div className="tabs">
           {[{id:'todos',label:'Todos'}, ...CATS].map(c => (
             <button key={c.id} className={`tab${filter===c.id?' active':''}`}
-              onClick={() => setFilter(c.id)}
+              onClick={() => { setFilter(c.id); localStorage.setItem('listaCasa_filter', c.id); }}
               style={filter===c.id && c.color ? {color:c.color,borderColor:c.border+'88',background:c.bg} : {}}>
               {c.label}
             </button>
