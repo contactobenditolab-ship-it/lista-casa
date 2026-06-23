@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 const USERS = ['Silvia', 'Sergio'];
 const OTHER = { Silvia: 'Sergio', Sergio: 'Silvia' };
 const CATS = [
-  { id: 'compras', label: '🛒 Compras', color: '#FCD34D', bg: '#2D2004', border: '#92400E' },
+  { id: 'super', label: '🥦 Supermercado', color: '#FCD34D', bg: '#2D2004', border: '#92400E' },
+  { id: 'compras', label: '🛍️ Compras', color: '#FB923C', bg: '#2D1004', border: '#9A3412' },
   { id: 'tareas',  label: '✅ Tareas',  color: '#6EE7B7', bg: '#022C22', border: '#065F46' },
   { id: 'casa',    label: '🏡 Casa',    color: '#93C5FD', bg: '#172554', border: '#1E40AF' },
   { id: 'recados', label: '🚗 Recados', color: '#FCA5A5', bg: '#2D0A0A', border: '#991B1B' },
