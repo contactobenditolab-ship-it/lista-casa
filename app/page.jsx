@@ -19,7 +19,7 @@ export default function Home() {
   const [user, setUser]           = useState(null);
   const [items, setItems] = useState(() => { try { const c = typeof window !== 'undefined' && localStorage.getItem('listaCasa_cache'); return c ? JSON.parse(c) : []; } catch { return []; } });
   const [filter, setFilter]       = useState(() => (typeof window !== 'undefined' && localStorage.getItem('listaCasa_filter')) || 'todos');
-  const [selCat, setSelCat]       = useState('compras');
+  const [selCat, setSelCat]       = useState('super');
   const [assignTo, setAssignTo]   = useState('');
   const [inputVal, setInputVal]   = useState('');
   const [showDone, setShowDone]   = useState(false);
@@ -94,6 +94,15 @@ export default function Home() {
     syncTimer.current = setTimeout(() => setSyncMsg(''), 2800);
   }
 
+  function updateCache(updater) {
+    try {
+      const cached = localStorage.getItem('listaCasa_cache');
+      if (!cached) return;
+      const updated = updater(JSON.parse(cached));
+      localStorage.setItem('listaCasa_cache', JSON.stringify(updated));
+    } catch {}
+  }
+
   function selectUser(name) {
     setUser(name);
     localStorage.setItem('listaCasa_user', name);
@@ -112,6 +121,7 @@ export default function Home() {
       assignedTo: assignTo || null,
     };
     setItems(prev => [item, ...prev]);
+    updateCache(prev => [item, ...prev]);
     setInputVal('');
     inputRef.current?.focus();
     flash('Añadido ✓');
@@ -126,10 +136,11 @@ export default function Home() {
     if (!item) return;
     const updates = { done: !item.done, doneBy: !item.done ? user : null, doneAt: !item.done ? Date.now() : null };
     setItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+    updateCache(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
     flash(updates.done ? '¡Hecho! ✓' : 'Deshecho');
     await fetch('/api/items', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, updates, actor: user }),
+      body: JSON.stringify({ id, updates, actor: user, itemSnapshot: item }),
     });
   }
 
@@ -141,7 +152,7 @@ export default function Home() {
     flash(`📣 Avisando a ${target}…`);
     await fetch('/api/items', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, updates: {}, actor: user, nudge: true }),
+      body: JSON.stringify({ id, updates: {}, actor: user, nudge: true, itemSnapshot: item }),
     });
     setNudging(null);
     flash(`📣 ¡${target} avisado/a!`);
@@ -151,12 +162,13 @@ export default function Home() {
     setItems(prev => prev.map(i => i.id === id ? { ...i, assignedTo: target || null } : i));
     await fetch('/api/items', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, updates: { assignedTo: target || null }, actor: user }),
+      body: JSON.stringify({ id, updates: { assignedTo: target || null }, actor: user, itemSnapshot: items.find(i => i.id === id) }),
     });
   }
 
   async function deleteItem(id) {
     setItems(prev => prev.filter(i => i.id !== id));
+    updateCache(prev => prev.filter(i => i.id !== id));
     await fetch('/api/items', {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
