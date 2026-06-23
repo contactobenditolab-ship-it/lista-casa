@@ -2,7 +2,7 @@ import { getItems, saveItem, updateItem, deleteItem } from '../../../lib/sheets.
 import { sendPushToAll, sendPushTo } from '../../../lib/push.js';
 import { NextResponse } from 'next/server';
 
-const CAT_EMOJI = { compras:'🛒', tareas:'✅', casa:'🏡', recados:'🚗', otros:'📦' };
+const CAT_EMOJI = { super:'🥦', compras:'🛍️', tareas:'✅', casa:'🏡', recados:'🚗', otros:'📦' };
 
 export async function GET() {
   try {
