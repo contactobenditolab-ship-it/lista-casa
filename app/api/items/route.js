@@ -19,7 +19,7 @@ export async function POST(req) {
     await saveItem(item);
     const emoji = CAT_EMOJI[item.cat] || '📋';
     const payload = item.assignedTo ? {
-      title: `${emoji} Te lo toca a ti`,
+      title: `${emoji} Te toca a ti`,
       body: `${item.createdBy} te asignó: "${item.text}"`,
       icon: '/icon-192.png', badge: '/badge-72.png', data: { url: '/' }, requireInteraction: true,
     } : {
@@ -37,10 +37,15 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    const { id, updates, actor, nudge } = await req.json();
-    await updateItem(id, updates);
-    const items = await getItems();
-    const item = items.find(i => i.id === id) || { text: '(tarea)', cat: 'otros', assignedTo: null };
+    const { id, updates, actor, nudge, itemSnapshot } = await req.json();
+
+    // FIX 1: skip DB write for pure nudges (updates is empty)
+    if (!nudge || Object.keys(updates).length > 0) {
+      await updateItem(id, updates);
+    }
+
+    // FIX 2: use client snapshot instead of re-fetching from DB
+    const item = itemSnapshot || { text: '(tarea)', cat: 'otros', assignedTo: null };
     const emoji = CAT_EMOJI[item.cat] || '📋';
 
     if (nudge) {
@@ -63,6 +68,7 @@ export async function PUT(req) {
         icon: '/icon-192.png', badge: '/badge-72.png', data: { url: '/' }, requireInteraction: true,
       });
     }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
