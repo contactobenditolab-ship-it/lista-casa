@@ -125,10 +125,26 @@ export default function Home() {
     setInputVal('');
     inputRef.current?.focus();
     flash('Añadido ✓');
-    await fetch('/api/items', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item }),
-    });
+    try {
+      const res = await fetch('/api/items', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        // Revertir si el servidor falló
+        setItems(prev => prev.filter(i => i.id !== item.id));
+        updateCache(prev => prev.filter(i => i.id !== item.id));
+        setInputVal(text);
+        flash('❌ Error al guardar, inténtalo de nuevo');
+      }
+    } catch {
+      // Sin conexión — revertir también
+      setItems(prev => prev.filter(i => i.id !== item.id));
+      updateCache(prev => prev.filter(i => i.id !== item.id));
+      setInputVal(text);
+      flash('❌ Sin conexión, inténtalo de nuevo');
+    }
   }
 
   async function toggleItem(id) {
@@ -592,3 +608,4 @@ function ItemCard({ item, currentUser, onToggle, onDelete, onNudge, onAssign, nu
     </div>
   );
 }
+
