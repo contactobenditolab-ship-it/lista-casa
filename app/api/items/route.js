@@ -39,22 +39,22 @@ export async function PUT(req) {
   try {
     const { id, updates, actor, nudge, itemSnapshot } = await req.json();
 
-    // FIX 1: skip DB write for pure nudges (updates is empty)
     if (!nudge || Object.keys(updates).length > 0) {
       await updateItem(id, updates);
     }
 
-    // FIX 2: use client snapshot instead of re-fetching from DB
     const item = itemSnapshot || { text: '(tarea)', cat: 'otros', assignedTo: null };
     const emoji = CAT_EMOJI[item.cat] || '📋';
 
     if (nudge) {
       const target = item.assignedTo || (actor === 'Silvia' ? 'Sergio' : 'Silvia');
-      await sendPushTo(target, {
+      console.log(`[nudge] actor=${actor} target=${target} item="${item.text}"`);
+      const pushResult = await sendPushTo(target, {
         title: `👋 ¡Oye! Toca hacer esto`,
         body: `${actor} te recuerda: "${item.text}"`,
         icon: '/icon-192.png', badge: '/badge-72.png', data: { url: '/' }, requireInteraction: true,
       });
+      console.log(`[nudge] pushResult=${JSON.stringify(pushResult)}`);
     } else if (updates.done !== undefined) {
       await sendPushToAll(actor, {
         title: updates.done ? `${emoji} Completado` : `${emoji} Reabierto`,
@@ -71,6 +71,7 @@ export async function PUT(req) {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
+    console.error(`[PUT error] ${e.message}`);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
