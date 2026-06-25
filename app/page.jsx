@@ -45,12 +45,22 @@ const CSS = `
   /* MAIN */
   main{padding:14px 14px 0}
 
-  /* ADD ROW — simple, sin caja */
-  .add-row{display:flex;gap:8px;margin-bottom:16px;align-items:center}
-  .add-wrap{flex:1;position:relative;display:flex;align-items:center}
-  .cat-indicator{position:absolute;left:12px;font-size:16px;pointer-events:none;line-height:1}
-  input[type=text]{flex:1;width:100%;padding:13px 14px 13px 38px;border:1px solid var(--bd2);border-radius:14px;
-    font-size:16px;background:var(--sf);color:var(--tx);outline:none;
+  /* ADD ROW */
+  .add-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;position:relative}
+  .cat-picker-btn{display:flex;align-items:center;gap:5px;padding:0 12px;height:48px;
+    border:1px solid var(--bd2);border-radius:14px;background:var(--sf);color:var(--tx);
+    font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .cat-picker-btn:active{background:var(--sf2)}
+  .cat-dropdown{position:absolute;top:calc(100% + 6px);left:0;z-index:100;
+    background:var(--sf);border:1px solid var(--bd2);border-radius:14px;
+    overflow:hidden;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  .cat-option{display:flex;align-items:center;gap:10px;padding:13px 16px;
+    cursor:pointer;font-size:14px;font-weight:500;transition:background .1s}
+  .cat-option:active{background:var(--sf2)}
+  .cat-option.sel{font-weight:700}
+  .cat-option-sep{height:1px;background:var(--bd);margin:0}
+  input[type=text]{flex:1;padding:13px 14px;border:1px solid var(--bd2);border-radius:14px;
+    font-size:16px;background:var(--sf);color:var(--tx);outline:none;min-width:0;
     -webkit-appearance:none;transition:border-color .15s}
   input[type=text]:focus{border-color:var(--accent)}
   input[type=text]::placeholder{color:var(--tx3)}
@@ -177,11 +187,13 @@ export default function Home() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [nudging, setNudging]       = useState(null);
   const [copied, setCopied]         = useState(false);
+  const [showCatPicker, setShowCatPicker] = useState(false);
+  const [manualCat, setManualCat]   = useState(null); // null = sigue la pestaña
   const syncTimer = useRef(null);
   const inputRef  = useRef(null);
 
-  // La categoría a añadir = pestaña activa (si es "todos" → "otros")
-  const addCat = filter === 'todos' ? 'otros' : filter;
+  // La categoría a añadir = manual si eligió, si no sigue la pestaña (si es "todos" → "otros")
+  const addCat = manualCat || (filter === 'todos' ? 'otros' : filter);
   const activeCat = catMap[addCat] || catMap['otros'];
 
   useEffect(() => {
@@ -278,6 +290,7 @@ export default function Home() {
     setInputVal('');
     inputRef.current?.focus();
     flash('Añadido ✓');
+    setManualCat(null); // reset al añadir
     try {
       const res = await fetch('/api/items', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -416,15 +429,34 @@ export default function Home() {
       </header>
 
       <main>
-        {/* INPUT — categoría automática según pestaña */}
+        {/* INPUT con selector de categoría */}
         <div className="add-row">
-          <div className="add-wrap">
-            <span className="cat-indicator">{activeCat.short}</span>
-            <input ref={inputRef} type="text"
-              placeholder={`Añadir en ${activeCat.label.split(' ').slice(1).join(' ')}…`}
-              value={inputVal} onChange={e => setInputVal(e.target.value)}
-              onKeyDown={e => e.key==='Enter' && addItem()} />
-          </div>
+          <button className="cat-picker-btn"
+            style={{ borderColor: activeCat.border, color: activeCat.color, background: activeCat.bg }}
+            onClick={() => setShowCatPicker(v => !v)}>
+            {activeCat.short} ▾
+          </button>
+          {showCatPicker && (
+            <div className="cat-dropdown">
+              {CATS.map((c, idx) => (
+                <div key={c.id}>
+                  <div className={`cat-option${addCat===c.id?' sel':''}`}
+                    style={addCat===c.id ? {background:c.bg,color:c.color} : {}}
+                    onClick={() => { setManualCat(c.id); setShowCatPicker(false); inputRef.current?.focus(); }}>
+                    <span>{c.short}</span>
+                    <span>{c.label.split(' ').slice(1).join(' ')}</span>
+                    {addCat===c.id && <span style={{marginLeft:'auto',fontSize:12}}>✓</span>}
+                  </div>
+                  {idx < CATS.length-1 && <div className="cat-option-sep"/>}
+                </div>
+              ))}
+            </div>
+          )}
+          <input ref={inputRef} type="text"
+            placeholder="Añadir…"
+            value={inputVal} onChange={e => setInputVal(e.target.value)}
+            onKeyDown={e => e.key==='Enter' && addItem()}
+            onClick={() => setShowCatPicker(false)} />
           <button className="btn-add" onClick={addItem}>+</button>
         </div>
 
